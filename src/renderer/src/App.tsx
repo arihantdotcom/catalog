@@ -1,34 +1,25 @@
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
 
 function App(): React.JSX.Element {
   const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-8">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>shadcn/ui + electron-vite</CardTitle>
+          <CardDescription>
+            Tailwind CSS v4, nova style, neutral theme with the Outfit + JetBrains Mono fonts.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <Button onClick={ipcHandle}>Send IPC</Button>
+          <Versions />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
