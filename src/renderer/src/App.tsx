@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ModeToggle } from '@/components/mode-toggle'
 import Versions from './components/Versions'
 
 function App(): React.JSX.Element {
@@ -7,6 +8,9 @@ function App(): React.JSX.Element {
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-8">
+      <div className="fixed top-4 right-4">
+        <ModeToggle />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>shadcn/ui + electron-vite</CardTitle>
