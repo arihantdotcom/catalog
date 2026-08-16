@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import catalogIcon from '../renderer/src/assets/app-logos/catalog.svg?asset'
 import { registerCatalogIpc } from './catalog'
 import { closeDb } from './db'
 
@@ -12,7 +12,8 @@ function createWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    title: 'Catalog',
+    ...(process.platform === 'linux' ? { icon: catalogIcon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

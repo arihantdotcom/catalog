@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { LaptopIcon, MoonIcon, Settings01Icon, Sun01Icon } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
-import { ElectronLogo, NodeJsLogo, ChromiumLogo } from '@/components/logos'
+import { ElectronLogo, NodeJsLogo, ChromiumLogo } from '@/components/assets'
 import {
   Accordion,
   AccordionContent,
@@ -56,7 +56,7 @@ function ThemeDrawer(): React.JSX.Element {
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button variant="outline" className="w-8 h-8 rounded-full">
+        <Button variant="outline" className="w-8 h-8 rounded-md">
           <HugeiconsIcon icon={Settings01Icon} />
         </Button>
       </DrawerTrigger>

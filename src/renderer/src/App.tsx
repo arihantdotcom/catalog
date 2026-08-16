@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Toaster, toast } from '@/components/ui/toast'
 import { ThemeDrawer } from '@/components/theme-drawer'
+import { CatalogNameLogo } from '@/components/assets'
 import { ItemDialog, type ItemDialogState } from '@/components/item-dialog'
 import { ThumbnailImage } from '@/components/thumbnail-image'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -35,7 +36,7 @@ import {
   FolderAddIcon,
   FolderOpenIcon,
   Loading03Icon,
-  More01Icon,
+  MoreVerticalIcon,
   Pdf02Icon,
   PlusSignIcon,
   RefreshIcon
@@ -257,10 +258,9 @@ function App(): React.JSX.Element {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-2 px-4">
-          <div className="flex items-baseline gap-2">
-            <h1 className="font-heading text-base font-medium">Catalog</h1>
-            <span className="text-xs text-muted-foreground">{items.length} item(s)</span>
+        <div className="flex h-14 w-full items-center justify-between gap-2 px-4">
+          <div className="flex items-center gap-2">
+            <CatalogNameLogo />
           </div>
           <div className="flex items-center gap-1.5">
             <Button
@@ -279,12 +279,12 @@ function App(): React.JSX.Element {
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                 <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
-                Add
+                Import
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleAddFile}>
                   <HugeiconsIcon icon={FileAddIcon} strokeWidth={2} />
-                  Add file…
+                  File
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleImport} disabled={importing}>
                   <HugeiconsIcon
@@ -292,7 +292,7 @@ function App(): React.JSX.Element {
                     strokeWidth={2}
                     className={importing ? 'animate-spin' : ''}
                   />
-                  {importing ? 'Importing…' : 'Import folder…'}
+                  {importing ? 'Importing' : 'Bulk'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -301,7 +301,7 @@ function App(): React.JSX.Element {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {loading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -364,10 +364,14 @@ function App(): React.JSX.Element {
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={
-                          <Button variant="ghost" size="icon-sm" className="-mt-1 -mr-1 shrink-0" />
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="-mt-1 -mr-1 shrink-0 cursor-pointer"
+                          />
                         }
                       >
-                        <HugeiconsIcon icon={More01Icon} strokeWidth={2} />
+                        <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => void handleOpen(item)}>
