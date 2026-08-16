@@ -356,9 +356,9 @@ function App(): React.JSX.Element {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 10 }).map((_, i) => (
-              <Card key={i} className="relative aspect-[3/4] w-full overflow-hidden p-0">
+              <Card key={i} className="relative aspect-2/3 w-full overflow-hidden p-0">
                 <div className="absolute inset-0 animate-pulse bg-muted" />
               </Card>
             ))}
@@ -397,7 +397,7 @@ function App(): React.JSX.Element {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayItems.map((item) => (
               <ItemCard
                 key={item.id}

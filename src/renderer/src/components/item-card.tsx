@@ -59,7 +59,7 @@ export function ItemCard({
   return (
     <Card
       className={cn(
-        'group relative aspect-3/4 w-full p-0 transition-shadow',
+        'group relative aspect-2/3 w-full p-0 transition-shadow',
         selected && 'ring-2 ring-primary'
       )}
     >
@@ -183,12 +183,17 @@ export function ItemCard({
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 border-t border-foreground/10 bg-background/60 p-3 backdrop-blur-md">
-        <h3 className="line-clamp-2 font-heading text-sm leading-tight font-medium">{item.name}</h3>
-        {item.description && (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
-        )}
-        {item.tags.length > 0 && (
+      <div className="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end gap-1.5 border-t border-foreground/10 bg-background/60 p-3.5 backdrop-blur-md">
+        <h3 className="line-clamp-2 font-heading text-[15px] leading-snug font-medium">{item.name}</h3>
+        <p
+          className={cn(
+            'line-clamp-2 text-xs',
+            item.description ? 'text-muted-foreground' : 'text-muted-foreground/60 italic'
+          )}
+        >
+          {item.description || 'No description'}
+        </p>
+        {item.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {item.tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-[10px]">
@@ -196,12 +201,12 @@ export function ItemCard({
               </Badge>
             ))}
           </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground/60 italic">No tags</p>
         )}
-        {item.lastOpened > 0 && (
-          <p className="text-[11px] text-muted-foreground/70">
-            Last opened {formatDate(item.lastOpened)}
-          </p>
-        )}
+        <p className="text-[11px] text-muted-foreground/70">
+          {item.lastOpened > 0 ? `Last opened ${formatDate(item.lastOpened)}` : 'Never opened'}
+        </p>
       </div>
     </Card>
   )
