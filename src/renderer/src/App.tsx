@@ -341,6 +341,7 @@ function App(): React.JSX.Element {
               onClick={handleRefresh}
               disabled={refreshing}
               title="Refresh"
+              className="h-8 w-8"
             >
               <HugeiconsIcon
                 icon={refreshing ? Loading03Icon : RefreshIcon}
@@ -349,7 +350,7 @@ function App(): React.JSX.Element {
               />
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
                 <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
                 Import
               </DropdownMenuTrigger>
