@@ -125,7 +125,7 @@ export function ItemCard({
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-20">
+      <div className="absolute bottom-3 left-3 z-30">
         <button
           type="button"
           aria-pressed={selected}

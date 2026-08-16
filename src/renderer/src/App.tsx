@@ -20,7 +20,8 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Toaster, toast } from '@/components/ui/toast'
-import { ThemeDrawer } from '@/components/theme-drawer'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { ThemeDrawer } from '@/components/settings'
 import { CatalogNameLogo } from '@/components/assets'
 import { ItemDialog, type ItemDialogState } from '@/components/item-dialog'
 import { ItemCard } from '@/components/item-card'
@@ -53,6 +54,8 @@ function App(): React.JSX.Element {
   const [deleteTargets, setDeleteTargets] = useState<CatalogItem[] | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [query, setQuery] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
 
   const fuse = useMemo(() => createSearchIndex(items), [items])
   const displayItems = useMemo(() => {
@@ -290,6 +293,22 @@ function App(): React.JSX.Element {
     setDeleteTargets(null)
   }
 
+  const handleClearAll = async (): Promise<void> => {
+    if (items.length === 0) return
+    try {
+      await window.api.removeMany(items.map((i) => i.id))
+      setItems([])
+      setSelectedIds(new Set())
+      toast.add({
+        title: 'Catalog cleared',
+        description: 'All items were removed from the catalog.',
+        type: 'success'
+      })
+    } catch (e) {
+      toast.add({ title: 'Clear failed', description: errorMessage(e), type: 'error' })
+    }
+  }
+
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
@@ -349,70 +368,80 @@ function App(): React.JSX.Element {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <ThemeDrawer />
+            <ThemeDrawer
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              itemsCount={items.length}
+              onClearAll={() => {
+                setSettingsOpen(false)
+                setConfirmClearAll(true)
+              }}
+            />
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
-        {loading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <Card key={i} className="relative aspect-2/3 w-full overflow-hidden p-0">
-                <div className="absolute inset-0 animate-pulse bg-muted" />
-              </Card>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
-              <HugeiconsIcon
-                icon={ArchiveIcon}
-                strokeWidth={1.5}
-                className="size-8 text-muted-foreground"
-              />
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 py-6">
+        <ScrollArea className="min-h-0 flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Card key={i} className="relative aspect-2/3 w-full overflow-hidden p-0">
+                  <div className="absolute inset-0 animate-pulse bg-muted" />
+                </Card>
+              ))}
             </div>
-            <div>
-              <h2 className="font-heading text-base font-medium">Your catalog is empty</h2>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Add a single PDF or import an entire folder to get started.
+          ) : items.length === 0 ? (
+            <div className="flex min-h-full flex-col items-center justify-center gap-4 py-24 text-center">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+                <HugeiconsIcon
+                  icon={ArchiveIcon}
+                  strokeWidth={1.5}
+                  className="size-8 text-muted-foreground"
+                />
+              </div>
+              <div>
+                <h2 className="font-heading text-base font-medium">Your catalog is empty</h2>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                  Add a single PDF or import an entire folder to get started.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleAddFile}>
+                  <HugeiconsIcon icon={FileAddIcon} strokeWidth={2} />
+                  Add file…
+                </Button>
+                <Button variant="outline" onClick={handleImport}>
+                  <HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} />
+                  Import folder…
+                </Button>
+              </div>
+            </div>
+          ) : displayItems.length === 0 ? (
+            <div className="flex min-h-full flex-col items-center justify-center gap-2 py-24 text-center">
+              <p className="font-heading text-base font-medium">No matches</p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Nothing matches “{query.trim()}” — try different terms.
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAddFile}>
-                <HugeiconsIcon icon={FileAddIcon} strokeWidth={2} />
-                Add file…
-              </Button>
-              <Button variant="outline" onClick={handleImport}>
-                <HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} />
-                Import folder…
-              </Button>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
+              {displayItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  selected={selectedIds.has(item.id)}
+                  onToggleSelect={toggleSelect}
+                  onOpen={handleOpen}
+                  onEdit={(i) => setDialogState({ mode: 'edit', item: i })}
+                  onDelete={(i) => setDeleteTargets([i])}
+                  onRepoint={handleRepoint}
+                  onLocate={handleLocate}
+                />
+              ))}
             </div>
-          </div>
-        ) : displayItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
-            <p className="font-heading text-base font-medium">No matches</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Nothing matches “{query.trim()}” — try different terms.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {displayItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                selected={selectedIds.has(item.id)}
-                onToggleSelect={toggleSelect}
-                onOpen={handleOpen}
-                onEdit={(i) => setDialogState({ mode: 'edit', item: i })}
-                onDelete={(i) => setDeleteTargets([i])}
-                onRepoint={handleRepoint}
-                onLocate={handleLocate}
-              />
-            ))}
-          </div>
-        )}
+          )}
+        </ScrollArea>
       </main>
 
       <ItemDialog
@@ -452,6 +481,35 @@ function App(): React.JSX.Element {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => void handleDelete()}>
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirmClearAll}
+        onOpenChange={(open) => {
+          if (!open) setConfirmClearAll(false)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All {items.length} item(s) and their thumbnails will be removed from the catalog. The
+              PDF files themselves are not deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setConfirmClearAll(false)
+                void handleClearAll()
+              }}
+            >
+              Clear all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { LaptopIcon, MoonIcon, Settings01Icon, Sun01Icon } from '@hugeicons/core-free-icons'
+import {
+  Delete01Icon,
+  LaptopIcon,
+  MoonIcon,
+  Settings01Icon,
+  Sun01Icon
+} from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { ElectronLogo, NodeJsLogo, ChromiumLogo } from '@/components/assets'
 import {
@@ -49,12 +55,22 @@ const runtimes = [
   }
 ] as const
 
-function ThemeDrawer(): React.JSX.Element {
+function ThemeDrawer({
+  open,
+  onOpenChange,
+  itemsCount,
+  onClearAll
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  itemsCount: number
+  onClearAll: () => void
+}): React.JSX.Element {
   const { theme, setTheme } = useTheme()
   const [versions] = useState(() => window.electron.process.versions)
 
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <Button variant="outline" className="w-8 h-8 rounded-md">
           <HugeiconsIcon icon={Settings01Icon} />
@@ -62,7 +78,7 @@ function ThemeDrawer(): React.JSX.Element {
       </DrawerTrigger>
       <DrawerContent className="mx-auto w-full max-w-md">
         <DrawerHeader>
-          <DrawerTitle>Appearance</DrawerTitle>
+          <DrawerTitle>Settings</DrawerTitle>
           <DrawerDescription>Select a theme for the app.</DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-row gap-1 px-4 pt-2 justify-evenly">
@@ -77,6 +93,27 @@ function ThemeDrawer(): React.JSX.Element {
               {label}
             </Button>
           ))}
+        </div>
+        <div className="px-4 pt-4 pb-2">
+          <p className="font-heading text-xs font-medium text-muted-foreground">Data</p>
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border bg-muted/40 p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Clear catalog</p>
+              <p className="text-xs text-muted-foreground">
+                {itemsCount} item(s) and their thumbnails will be removed
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="shrink-0"
+              disabled={itemsCount === 0}
+              onClick={onClearAll}
+            >
+              <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} />
+              Clear all
+            </Button>
+          </div>
         </div>
         <div className="px-4 pt-4 pb-2">
           <p className="font-heading text-xs font-medium text-muted-foreground">About this app</p>
