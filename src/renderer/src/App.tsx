@@ -460,6 +460,13 @@ function App(): React.JSX.Element {
       {selectedIds.size > 0 && (
         <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-popover/80 px-3 py-2 shadow-lg backdrop-blur-md">
           <span className="text-xs font-medium">{selectedIds.size} selected</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedIds(new Set(displayItems.map((i) => i.id)))}
+          >
+            Select all
+          </Button>
           <Button size="sm" variant="destructive" onClick={() => setDeleteTargets(selectedItems)}>
             Delete
           </Button>
