@@ -194,6 +194,16 @@ export function registerCatalogIpc(): void {
     db.prepare('DELETE FROM items WHERE id = ?').run(id)
   })
 
+  ipcMain.handle('items:removeMany', (_e, ids: number[]) => {
+    const db = getDb()
+    for (const id of ids) {
+      const row = db.prepare('SELECT thumbnail FROM items WHERE id = ?').get(id) as
+        { thumbnail: string } | undefined
+      if (row) deleteThumbnail(row.thumbnail)
+      db.prepare('DELETE FROM items WHERE id = ?').run(id)
+    }
+  })
+
   ipcMain.handle('items:open', async (_e, id: number): Promise<OpenResult> => {
     const db = getDb()
     const row = db.prepare('SELECT location FROM items WHERE id = ?').get(id) as
@@ -206,10 +216,7 @@ export function registerCatalogIpc(): void {
       const result = await Promise.race([
         shell.openPath(row.location),
         new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('Timed out waiting for the default application')),
-            8000
-          )
+          setTimeout(() => reject(new Error('Timed out waiting for the default application')), 8000)
         )
       ])
       if (result) return { ok: false, error: result }

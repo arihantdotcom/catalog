@@ -27,6 +27,7 @@ import { ItemCard } from '@/components/item-card'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArchiveIcon,
+  Cancel01Icon,
   FileAddIcon,
   FolderAddIcon,
   Loading03Icon,
@@ -49,7 +50,8 @@ function App(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false)
   const [importing, setImporting] = useState(false)
   const [dialogState, setDialogState] = useState<ItemDialogState>(null)
-  const [deleteTarget, setDeleteTarget] = useState<CatalogItem | null>(null)
+  const [deleteTargets, setDeleteTargets] = useState<CatalogItem[] | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [query, setQuery] = useState('')
 
   const fuse = useMemo(() => createSearchIndex(items), [items])
@@ -57,6 +59,33 @@ function App(): React.JSX.Element {
     const q = query.trim()
     return q ? searchItems(fuse, q) : items
   }, [fuse, query, items])
+
+  const selectedItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.id)),
+    [items, selectedIds]
+  )
+
+  const toggleSelect = (id: number): void => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const clearSelection = (): void => setSelectedIds(new Set())
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') clearSelection()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -237,25 +266,34 @@ function App(): React.JSX.Element {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (!deleteTarget) return
+    if (!deleteTargets || deleteTargets.length === 0) return
     try {
-      await window.api.removeItem(deleteTarget.id)
-      setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id))
+      await window.api.removeMany(deleteTargets.map((i) => i.id))
+      const removed = new Set(deleteTargets.map((i) => i.id))
+      setItems((prev) => prev.filter((i) => !removed.has(i.id)))
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of removed) next.delete(id)
+        return next
+      })
       toast.add({
-        title: 'Item deleted',
-        description: `'${deleteTarget.name}' was removed.`,
+        title: deleteTargets.length === 1 ? 'Item deleted' : 'Items deleted',
+        description:
+          deleteTargets.length === 1
+            ? `'${deleteTargets[0].name}' was removed.`
+            : `${deleteTargets.length} item(s) were removed.`,
         type: 'success'
       })
     } catch (e) {
       toast.add({ title: 'Delete failed', description: errorMessage(e), type: 'error' })
     }
-    setDeleteTarget(null)
+    setDeleteTargets(null)
   }
 
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-<div className="flex h-14 w-full items-center justify-between gap-3 px-4">
+        <div className="flex h-14 w-full items-center justify-between gap-3 px-4">
           <div className="flex shrink-0 items-center gap-2">
             <CatalogNameLogo />
             <span className="text-xs text-muted-foreground">
@@ -318,9 +356,9 @@ function App(): React.JSX.Element {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {loading ? (
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <Card key={i} className="relative aspect-[3/4] overflow-hidden p-0">
+              <Card key={i} className="relative aspect-[3/4] w-full overflow-hidden p-0">
                 <div className="absolute inset-0 animate-pulse bg-muted" />
               </Card>
             ))}
@@ -359,14 +397,16 @@ function App(): React.JSX.Element {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {displayItems.map((item) => (
               <ItemCard
                 key={item.id}
                 item={item}
+                selected={selectedIds.has(item.id)}
+                onToggleSelect={toggleSelect}
                 onOpen={handleOpen}
                 onEdit={(i) => setDialogState({ mode: 'edit', item: i })}
-                onDelete={setDeleteTarget}
+                onDelete={(i) => setDeleteTargets([i])}
                 onRepoint={handleRepoint}
                 onLocate={handleLocate}
               />
@@ -382,17 +422,30 @@ function App(): React.JSX.Element {
       />
 
       <AlertDialog
-        open={deleteTarget !== null}
+        open={deleteTargets !== null}
         onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
+          if (!open) setDeleteTargets(null)
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteTargets !== null && deleteTargets.length === 1
+                ? 'Delete item?'
+                : `Delete ${deleteTargets?.length ?? 0} items?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              <span className="font-medium">{deleteTarget?.name}</span> and its thumbnail will be
-              removed from the catalog. The PDF file itself is not deleted.
+              {deleteTargets !== null && deleteTargets.length === 1 ? (
+                <>
+                  <span className="font-medium">{deleteTargets[0].name}</span> and its thumbnail
+                  will be removed from the catalog. The PDF file itself is not deleted.
+                </>
+              ) : (
+                <>
+                  {deleteTargets?.length ?? 0} item(s) and their thumbnails will be removed from the
+                  catalog. The PDF files themselves are not deleted.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -403,6 +456,18 @@ function App(): React.JSX.Element {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-popover/80 px-3 py-2 shadow-lg backdrop-blur-md">
+          <span className="text-xs font-medium">{selectedIds.size} selected</span>
+          <Button size="sm" variant="destructive" onClick={() => setDeleteTargets(selectedItems)}>
+            Delete
+          </Button>
+          <Button size="icon-sm" variant="ghost" onClick={clearSelection} title="Clear selection">
+            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+          </Button>
+        </div>
+      )}
 
       <Toaster />
     </div>

@@ -16,6 +16,7 @@ const api = {
   updateItem: (id: number, input: CatalogItemInput): Promise<CatalogItem> =>
     ipcRenderer.invoke('items:update', id, input),
   removeItem: (id: number): Promise<void> => ipcRenderer.invoke('items:remove', id),
+  removeMany: (ids: number[]): Promise<void> => ipcRenderer.invoke('items:removeMany', ids),
   openItem: (id: number): Promise<OpenResult> => ipcRenderer.invoke('items:open', id),
   refreshItems: (): Promise<RefreshResult> => ipcRenderer.invoke('items:refresh'),
   importDirectory: (dir: string): Promise<ImportResult> =>
