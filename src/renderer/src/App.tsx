@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,43 +17,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Toaster, toast } from '@/components/ui/toast'
 import { ThemeDrawer } from '@/components/theme-drawer'
 import { CatalogNameLogo } from '@/components/assets'
 import { ItemDialog, type ItemDialogState } from '@/components/item-dialog'
-import { ThumbnailImage } from '@/components/thumbnail-image'
+import { ItemCard } from '@/components/item-card'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
-  Alert01Icon,
   ArchiveIcon,
-  ArrowUpRight01Icon,
-  Delete01Icon,
-  Edit01Icon,
   FileAddIcon,
   FolderAddIcon,
-  FolderOpenIcon,
   Loading03Icon,
-  MoreVerticalIcon,
-  Pdf02Icon,
   PlusSignIcon,
-  RefreshIcon
+  RefreshIcon,
+  Search01Icon
 } from '@hugeicons/core-free-icons'
 import type { CatalogItem } from '../../shared/types'
 import { generateThumbnail } from '@/lib/thumbnail'
+import { extractPdfInfo, pdfInfoToMetadata } from '@/lib/pdf-info'
+import { createSearchIndex, searchItems } from '@/lib/search'
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  })
 }
 
 function App(): React.JSX.Element {
@@ -63,6 +50,13 @@ function App(): React.JSX.Element {
   const [importing, setImporting] = useState(false)
   const [dialogState, setDialogState] = useState<ItemDialogState>(null)
   const [deleteTarget, setDeleteTarget] = useState<CatalogItem | null>(null)
+  const [query, setQuery] = useState('')
+
+  const fuse = useMemo(() => createSearchIndex(items), [items])
+  const displayItems = useMemo(() => {
+    const q = query.trim()
+    return q ? searchItems(fuse, q) : items
+  }, [fuse, query, items])
 
   useEffect(() => {
     let cancelled = false
@@ -159,14 +153,17 @@ function App(): React.JSX.Element {
       for (const item of res.items) {
         try {
           const data = await window.api.readPdf(item.location)
-          const thumb = await generateThumbnail(data)
-          if (thumb) {
+          const [thumb, pdfInfo] = await Promise.all([
+            generateThumbnail(data),
+            extractPdfInfo(data)
+          ])
+          if (thumb || pdfInfo) {
             const updated = await window.api.updateItem(item.id, {
               name: item.name,
               description: item.description,
               tags: item.tags,
               location: item.location,
-              metadata: item.metadata,
+              metadata: pdfInfo ? pdfInfoToMetadata(pdfInfo) : item.metadata,
               thumbnailData: thumb
             })
             setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
@@ -258,11 +255,29 @@ function App(): React.JSX.Element {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="flex h-14 w-full items-center justify-between gap-2 px-4">
-          <div className="flex items-center gap-2">
+<div className="flex h-14 w-full items-center justify-between gap-3 px-4">
+          <div className="flex shrink-0 items-center gap-2">
             <CatalogNameLogo />
+            <span className="text-xs text-muted-foreground">
+              {query.trim()
+                ? `${displayItems.length} of ${items.length} item(s)`
+                : `${items.length} item(s)`}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="relative w-full max-w-md">
+            <HugeiconsIcon
+              icon={Search01Icon}
+              strokeWidth={2}
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, description, tags, metadata…"
+              className="h-9 pl-8"
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -303,13 +318,10 @@ function App(): React.JSX.Element {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {loading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <div className="aspect-[3/4] animate-pulse bg-muted" />
-                <CardContent className="p-3">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
-                </CardContent>
+              <Card key={i} className="relative aspect-[3/4] overflow-hidden p-0">
+                <div className="absolute inset-0 animate-pulse bg-muted" />
               </Card>
             ))}
           </div>
@@ -339,121 +351,25 @@ function App(): React.JSX.Element {
               </Button>
             </div>
           </div>
+        ) : displayItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+            <p className="font-heading text-base font-medium">No matches</p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Nothing matches “{query.trim()}” — try different terms.
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {items.map((item) => (
-              <Card key={item.id} className="flex flex-col overflow-hidden">
-                <div className="relative aspect-[3/4] w-full bg-muted">
-                  {item.thumbnailExists && item.thumbnail ? (
-                    <ThumbnailImage filePath={item.thumbnail} alt={item.name} />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <HugeiconsIcon
-                        icon={Pdf02Icon}
-                        strokeWidth={1.5}
-                        className="size-12 text-muted-foreground/50"
-                      />
-                    </div>
-                  )}
-                </div>
-                <CardContent className="flex flex-1 flex-col gap-1.5 p-3">
-                  <div className="flex items-start justify-between gap-1">
-                    <h3 className="line-clamp-2 font-heading text-sm leading-tight font-medium">
-                      {item.name}
-                    </h3>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="-mt-1 -mr-1 shrink-0 cursor-pointer"
-                          />
-                        }
-                      >
-                        <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => void handleOpen(item)}>
-                          <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} />
-                          Open
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setDialogState({ mode: 'edit', item })}>
-                          <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setDeleteTarget(item)}
-                        >
-                          <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {item.description && (
-                    <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
-                  )}
-                  {item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-[10px]">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  {item.lastOpened > 0 && (
-                    <p className="text-[11px] text-muted-foreground/70">
-                      Last opened {formatDate(item.lastOpened)}
-                    </p>
-                  )}
-                  {(!item.locationExists || !item.thumbnailExists) && (
-                    <div className="mt-1.5 rounded-lg border border-destructive/30 bg-destructive/5 p-2">
-                      <div className="flex items-start gap-1.5">
-                        <HugeiconsIcon
-                          icon={Alert01Icon}
-                          strokeWidth={2}
-                          className="mt-0.5 size-3.5 shrink-0 text-destructive"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-destructive">
-                            {!item.locationExists ? 'File missing' : 'Thumbnail missing'}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-destructive/90">
-                            {!item.locationExists
-                              ? `Couldn't find: ${item.location.split(/[\\/]/).pop()}`
-                              : 'The thumbnail file is missing.'}
-                          </p>
-                        </div>
-                      </div>
-                      {!item.locationExists && (
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {item.repointCandidate && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void handleRepoint(item, item.repointCandidate!)}
-                            >
-                              Repoint
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void handleLocate(item)}
-                          >
-                            <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />
-                            Locate…
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {displayItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onOpen={handleOpen}
+                onEdit={(i) => setDialogState({ mode: 'edit', item: i })}
+                onDelete={setDeleteTarget}
+                onRepoint={handleRepoint}
+                onLocate={handleLocate}
+              />
             ))}
           </div>
         )}

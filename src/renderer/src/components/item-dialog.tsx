@@ -17,6 +17,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Alert01Icon, FolderOpenIcon, Loading03Icon } from '@hugeicons/core-free-icons'
 import type { CatalogItem, CatalogItemInput, ThumbnailData } from '../../../shared/types'
 import { generateThumbnail } from '@/lib/thumbnail'
+import { extractPdfInfo, pdfInfoToMetadata, type PdfInfo } from '@/lib/pdf-info'
 
 export type ItemDialogState =
   { mode: 'create'; location?: string } | { mode: 'edit'; item: CatalogItem } | null
@@ -68,24 +69,52 @@ function ItemForm({
       } catch {
         throw new Error('Metadata must be valid JSON')
       }
+      void parsedMetadata
       const tags = tagsText
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean)
 
       let thumbnailData: ThumbnailData | null = null
+      let pdfInfo: PdfInfo | null = null
       if (needsThumbnail) {
         setRendering(true)
         const data = await window.api.readPdf(location)
-        thumbnailData = await generateThumbnail(data)
+        ;[thumbnailData, pdfInfo] = await Promise.all([
+          generateThumbnail(data),
+          extractPdfInfo(data)
+        ])
+      }
+
+      let finalName = trimmedName
+      let finalDescription = description.trim()
+      let finalTags = tags
+      let finalMetadata = metadataText.trim() || '{}'
+
+      if (pdfInfo) {
+        if (editing) {
+          if (!finalDescription && pdfInfo.subject) finalDescription = pdfInfo.subject
+          if (finalTags.length === 0 && pdfInfo.keywords.length > 0) {
+            finalTags = pdfInfo.keywords
+          }
+          if (finalMetadata === '{}') finalMetadata = pdfInfoToMetadata(pdfInfo)
+        } else {
+          const nameFromFile = (state.location?.split(/[\\/]/).pop() ?? '').replace(/\.pdf$/i, '')
+          if (trimmedName === nameFromFile && pdfInfo.title) finalName = pdfInfo.title
+          if (!finalDescription && pdfInfo.subject) finalDescription = pdfInfo.subject
+          if (finalTags.length === 0 && pdfInfo.keywords.length > 0) {
+            finalTags = pdfInfo.keywords
+          }
+          if (finalMetadata === '{}') finalMetadata = pdfInfoToMetadata(pdfInfo)
+        }
       }
 
       const input: CatalogItemInput = {
-        name: trimmedName,
-        description: description.trim(),
-        tags,
+        name: finalName,
+        description: finalDescription,
+        tags: finalTags,
         location,
-        metadata: JSON.stringify(parsedMetadata, null, 2),
+        metadata: finalMetadata,
         thumbnailData
       }
       const saved =

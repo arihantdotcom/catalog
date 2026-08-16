@@ -1,0 +1,72 @@
+import { getDocument } from 'pdfjs-dist'
+
+export type PdfInfo = {
+  title?: string
+  author?: string
+  subject?: string
+  keywords: string[]
+  pages: number
+  creator?: string
+  producer?: string
+  created?: string
+  modified?: string
+}
+
+function parsePdfDate(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const m = raw.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/)
+  if (!m) return undefined
+  const [, year, month = '01', day = '01', hour = '00', minute = '00', second = '00'] = m
+  const date = new Date(Date.UTC(+year, +month - 1, +day, +hour, +minute, +second))
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
+
+function splitKeywords(raw: unknown): string[] {
+  if (typeof raw !== 'string' || !raw.trim()) return []
+  return raw
+    .split(/[,;]/)
+    .map((k) => k.trim())
+    .filter(Boolean)
+}
+
+function textField(raw: unknown): string | undefined {
+  return typeof raw === 'string' && raw.trim() ? raw.trim() : undefined
+}
+
+export async function extractPdfInfo(data: ArrayBuffer): Promise<PdfInfo | null> {
+  try {
+    const pdf = await getDocument({ data }).promise
+    try {
+      const { info } = await pdf.getMetadata()
+      const fields = info as Record<string, unknown>
+      return {
+        title: textField(fields.Title),
+        author: textField(fields.Author),
+        subject: textField(fields.Subject),
+        keywords: splitKeywords(fields.Keywords),
+        pages: pdf.numPages,
+        creator: textField(fields.Creator),
+        producer: textField(fields.Producer),
+        created: parsePdfDate(fields.CreationDate),
+        modified: parsePdfDate(fields.ModDate)
+      }
+    } finally {
+      await pdf.loadingTask.destroy()
+    }
+  } catch {
+    return null
+  }
+}
+
+export function pdfInfoToMetadata(info: PdfInfo): string {
+  const out: Record<string, string | number | string[]> = { pages: info.pages }
+  if (info.title) out.title = info.title
+  if (info.author) out.author = info.author
+  if (info.subject) out.subject = info.subject
+  if (info.keywords.length > 0) out.keywords = info.keywords
+  if (info.creator) out.creator = info.creator
+  if (info.producer) out.producer = info.producer
+  if (info.created) out.created = info.created
+  if (info.modified) out.modified = info.modified
+  return JSON.stringify(out, null, 2)
+}
