@@ -16,8 +16,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Alert01Icon, FolderOpenIcon, Loading03Icon } from '@hugeicons/core-free-icons'
 import type { CatalogItem, CatalogItemInput, ThumbnailData } from '../../../shared/types'
-import { generateThumbnail } from '@/lib/thumbnail'
-import { extractPdfInfo, pdfInfoToMetadata, type PdfInfo } from '@/lib/pdf-info'
+import { generateCover } from '@/lib/cover'
+import { pdfInfoToMetadata, type PdfInfo } from '@/lib/pdf-info'
 
 export type ItemDialogState =
   { mode: 'create'; location?: string } | { mode: 'edit'; item: CatalogItem } | null
@@ -80,10 +80,9 @@ function ItemForm({
       if (needsThumbnail) {
         setRendering(true)
         const data = await window.api.readPdf(location)
-        ;[thumbnailData, pdfInfo] = await Promise.all([
-          generateThumbnail(data),
-          extractPdfInfo(data)
-        ])
+        const cover = await generateCover(data)
+        thumbnailData = cover?.thumbnail ?? null
+        pdfInfo = cover?.info ?? null
       }
 
       let finalName = trimmedName

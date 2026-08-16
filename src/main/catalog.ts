@@ -8,6 +8,7 @@ import {
   unlinkSync,
   writeFileSync
 } from 'fs'
+import { readFile } from 'fs/promises'
 import { basename, dirname, extname, join } from 'path'
 import { randomUUID } from 'crypto'
 import type {
@@ -286,9 +287,9 @@ export function registerCatalogIpc(): void {
     return result.canceled ? null : result.filePaths[0]
   })
 
-  ipcMain.handle('pdf:read', (_e, filePath: string): ArrayBuffer => {
+  ipcMain.handle('pdf:read', async (_e, filePath: string): Promise<ArrayBuffer> => {
     if (!filePath || !existsSync(filePath)) throw new Error(`File not found: ${filePath}`)
-    const buf = readFileSync(filePath)
+    const buf = await readFile(filePath)
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
   })
 

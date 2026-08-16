@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -37,8 +37,9 @@ import {
   Search01Icon
 } from '@hugeicons/core-free-icons'
 import type { CatalogItem } from '../../shared/types'
-import { generateThumbnail } from '@/lib/thumbnail'
-import { extractPdfInfo, pdfInfoToMetadata } from '@/lib/pdf-info'
+import { generateCover } from '@/lib/cover'
+import { pdfInfoToMetadata } from '@/lib/pdf-info'
+import { runCoverPipeline, type CoverProgress } from '@/lib/cover-pipeline'
 import { createSearchIndex, searchItems } from '@/lib/search'
 
 function errorMessage(e: unknown): string {
@@ -56,6 +57,9 @@ function App(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmClearAll, setConfirmClearAll] = useState(false)
+  const [coverProgress, setCoverProgress] = useState<CoverProgress | null>(null)
+  const pendingCovers = useRef<CatalogItem[]>([])
+  const pipelineActive = useRef(false)
 
   const fuse = useMemo(() => createSearchIndex(items), [items])
   const displayItems = useMemo(() => {
@@ -82,6 +86,52 @@ function App(): React.JSX.Element {
 
   const clearSelection = (): void => setSelectedIds(new Set())
 
+  const drainCovers = useCallback(async (): Promise<void> => {
+    while (true) {
+      const seen = new Set<number>()
+      const batch = pendingCovers.current.filter((item) => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      })
+      pendingCovers.current = []
+      if (batch.length === 0) {
+        pipelineActive.current = false
+        return
+      }
+      setCoverProgress({ total: batch.length, done: 0, failed: 0 })
+      await runCoverPipeline(batch, {
+        onProgress: setCoverProgress,
+        onItemUpdated: (updated) =>
+          setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i))),
+        onDone: ({ total, done, failed }) => {
+          if (failed > 0) {
+            toast.add({
+              title: 'Some covers failed',
+              description: `Rendered ${done} of ${total} cover(s); the rest will retry on refresh.`,
+              type: 'warning',
+              timeout: 6000
+            })
+          }
+        }
+      })
+      setCoverProgress(null)
+    }
+  }, [])
+
+  const renderCovers = useCallback(
+    (targets: CatalogItem[]): void => {
+      const queued = targets.filter((i) => i.locationExists && !i.thumbnailExists)
+      if (queued.length === 0) return
+      pendingCovers.current.push(...queued)
+      if (!pipelineActive.current) {
+        pipelineActive.current = true
+        void drainCovers()
+      }
+    },
+    [drainCovers]
+  )
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') clearSelection()
@@ -93,10 +143,12 @@ function App(): React.JSX.Element {
   useEffect(() => {
     let cancelled = false
     const run = async (): Promise<void> => {
+      let loaded: CatalogItem[] = []
       try {
         const res = await window.api.refreshItems()
         if (cancelled) return
         setItems(res.items)
+        loaded = res.items
         if (res.missingLocations === 0 && res.missingThumbnails === 0) {
           toast.add({
             title: 'All items OK',
@@ -121,20 +173,25 @@ function App(): React.JSX.Element {
           })
         }
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          renderCovers(loaded)
+        }
       }
     }
     void run()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [renderCovers])
 
   const handleRefresh = async (): Promise<void> => {
     setRefreshing(true)
+    let refreshed: CatalogItem[] = []
     try {
       const res = await window.api.refreshItems()
       setItems(res.items)
+      refreshed = res.items
       if (res.missingLocations === 0 && res.missingThumbnails === 0) {
         toast.add({
           title: 'All items OK',
@@ -153,6 +210,7 @@ function App(): React.JSX.Element {
       toast.add({ title: 'Refresh failed', description: errorMessage(e), type: 'error' })
     } finally {
       setRefreshing(false)
+      renderCovers(refreshed)
     }
   }
 
@@ -177,39 +235,11 @@ function App(): React.JSX.Element {
       } else {
         toast.add({
           title: 'Import complete',
-          description: `Added ${res.created} PDF(s), skipped ${res.skipped}. Generating thumbnails…`,
+          description: `Added ${res.created} PDF(s), skipped ${res.skipped}. Rendering covers…`,
           type: 'success'
         })
       }
-      let ok = 0
-      for (const item of res.items) {
-        try {
-          const data = await window.api.readPdf(item.location)
-          const [thumb, pdfInfo] = await Promise.all([
-            generateThumbnail(data),
-            extractPdfInfo(data)
-          ])
-          if (thumb || pdfInfo) {
-            const updated = await window.api.updateItem(item.id, {
-              name: item.name,
-              description: item.description,
-              tags: item.tags,
-              location: item.location,
-              metadata: pdfInfo ? pdfInfoToMetadata(pdfInfo) : item.metadata,
-              thumbnailData: thumb
-            })
-            setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
-            ok++
-          }
-        } catch {
-          // keep going, failed thumbnails stay missing
-        }
-      }
-      toast.add({
-        title: 'Thumbnails ready',
-        description: `Generated thumbnails for ${ok} of ${res.items.length} item(s).`,
-        type: 'success'
-      })
+      renderCovers(res.items)
     } catch (e) {
       toast.add({ title: 'Import failed', description: errorMessage(e), type: 'error' })
     } finally {
@@ -229,14 +259,14 @@ function App(): React.JSX.Element {
   const handleRepoint = async (item: CatalogItem, newLocation: string): Promise<void> => {
     try {
       const data = await window.api.readPdf(newLocation)
-      const thumb = await generateThumbnail(data)
+      const cover = await generateCover(data)
       const updated = await window.api.updateItem(item.id, {
         name: item.name,
         description: item.description,
         tags: item.tags,
         location: newLocation,
-        metadata: item.metadata,
-        thumbnailData: thumb
+        metadata: cover?.info ? pdfInfoToMetadata(cover.info) : item.metadata,
+        thumbnailData: cover?.thumbnail ?? null
       })
       setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
       toast.add({
@@ -383,6 +413,30 @@ function App(): React.JSX.Element {
       </header>
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col overflow-hidden px-4 py-6">
+        {coverProgress && coverProgress.total > 0 && (
+          <div className="mb-4 flex shrink-0 items-center gap-3 rounded-xl border bg-popover/70 px-4 py-2.5 backdrop-blur-md">
+            <HugeiconsIcon
+              icon={Loading03Icon}
+              strokeWidth={2}
+              className="size-4 shrink-0 animate-spin text-muted-foreground"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium">
+                Rendering covers
+                {coverProgress.failed > 0 ? ` — ${coverProgress.failed} failed` : '…'}
+              </p>
+              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${(coverProgress.done / coverProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {coverProgress.done}/{coverProgress.total}
+            </span>
+          </div>
+        )}
         <ScrollArea className="min-h-0 flex-1">
           {loading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

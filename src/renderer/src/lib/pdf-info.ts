@@ -1,4 +1,4 @@
-import { getDocument } from 'pdfjs-dist'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 export type PdfInfo = {
   title?: string
@@ -33,25 +33,20 @@ function textField(raw: unknown): string | undefined {
   return typeof raw === 'string' && raw.trim() ? raw.trim() : undefined
 }
 
-export async function extractPdfInfo(data: ArrayBuffer): Promise<PdfInfo | null> {
+export async function extractPdfInfoFromDocument(pdf: PDFDocumentProxy): Promise<PdfInfo | null> {
   try {
-    const pdf = await getDocument({ data }).promise
-    try {
-      const { info } = await pdf.getMetadata()
-      const fields = info as Record<string, unknown>
-      return {
-        title: textField(fields.Title),
-        author: textField(fields.Author),
-        subject: textField(fields.Subject),
-        keywords: splitKeywords(fields.Keywords),
-        pages: pdf.numPages,
-        creator: textField(fields.Creator),
-        producer: textField(fields.Producer),
-        created: parsePdfDate(fields.CreationDate),
-        modified: parsePdfDate(fields.ModDate)
-      }
-    } finally {
-      await pdf.loadingTask.destroy()
+    const { info } = await pdf.getMetadata()
+    const fields = info as Record<string, unknown>
+    return {
+      title: textField(fields.Title),
+      author: textField(fields.Author),
+      subject: textField(fields.Subject),
+      keywords: splitKeywords(fields.Keywords),
+      pages: pdf.numPages,
+      creator: textField(fields.Creator),
+      producer: textField(fields.Producer),
+      created: parsePdfDate(fields.CreationDate),
+      modified: parsePdfDate(fields.ModDate)
     }
   } catch {
     return null
