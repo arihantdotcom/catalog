@@ -55,79 +55,84 @@ export function ItemCard({
 }: ItemCardProps): React.JSX.Element {
   const locationMissing = !item.locationExists
   const thumbnailMissing = !item.thumbnailExists
+  const visibleTags = item.tags.slice(0, 2)
 
   return (
     <Card
       className={cn(
-        'group relative aspect-2/3 w-full p-0 transition-shadow',
-        selected && 'ring-2 ring-primary'
+        'group relative isolate aspect-3/4 w-full overflow-hidden rounded-[1.4rem] border border-border/70 bg-card p-0 shadow-[0_18px_35px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(15,23,42,0.12)]',
+        selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
     >
       <div className="absolute inset-0">
         {item.thumbnailExists && item.thumbnail ? (
           <ThumbnailImage filePath={item.thumbnail} alt={item.name} />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted">
-            <HugeiconsIcon
-              icon={Pdf02Icon}
-              strokeWidth={1.5}
-              className="size-12 text-muted-foreground/50"
-            />
+          <div className="flex h-full w-full items-center justify-center bg-linear-to-r from-primary/20 to-secondary/20">
+            <div className="rounded-[1.2rem] border border-foreground/10 bg-background/60 p-6 shadow-inner backdrop-blur-sm">
+              <HugeiconsIcon
+                icon={Pdf02Icon}
+                strokeWidth={1.4}
+                className="size-12 text-muted-foreground/60"
+              />
+            </div>
           </div>
         )}
       </div>
 
-      <div className="absolute top-2 left-2">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 cursor-pointer bg-background/50 backdrop-blur-sm"
-          title="Open externally"
-          onClick={() => onOpen(item)}
-        >
-          <HugeiconsIcon icon={ExternalLinkIcon} strokeWidth={2} />
-        </Button>
-      </div>
+      <div className="absolute inset-0 bg-linear-to-b from-black/5 via-transparent to-black/75" />
 
-      <div className="absolute top-2 right-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="shrink-0 cursor-pointer bg-background/50 backdrop-blur-sm"
-              />
-            }
+      <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-2 p-3">
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 cursor-pointer border border-white/15 bg-black/20 text-white shadow-sm backdrop-blur-md hover:bg-black/30 hover:text-white"
+            title="Open externally"
+            onClick={() => onOpen(item)}
           >
-            <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onOpen(item)}>
-              <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} />
-              Open
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(item)}>
-              <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
-              <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <HugeiconsIcon icon={ExternalLinkIcon} strokeWidth={2} />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 cursor-pointer border border-white/15 bg-black/20 text-white shadow-sm backdrop-blur-md hover:bg-black/30 hover:text-white"
+                />
+              }
+            >
+              <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onOpen(item)}>
+                <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(item)}>
+                <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
+                <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-10">
+      <div className="absolute bottom-3 left-3 z-20">
         <button
           type="button"
           aria-pressed={selected}
           aria-label={selected ? 'Deselect item' : 'Select item'}
           onClick={() => onToggleSelect(item.id)}
           className={cn(
-            'flex size-6 cursor-pointer items-center justify-center rounded-full border bg-background/60 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100',
+            'flex size-7 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/25 text-white opacity-0 shadow-sm backdrop-blur-md transition-all duration-200 group-hover:opacity-100',
             selected && 'border-primary bg-primary text-primary-foreground opacity-100'
           )}
         >
@@ -136,15 +141,17 @@ export function ItemCard({
       </div>
 
       {locationMissing && (
-        <div className="absolute inset-x-0 top-0 flex flex-col gap-1.5 border-b border-destructive/30 bg-destructive/10 p-2 backdrop-blur-sm">
-          <div className="flex items-start gap-1.5">
+        <div className="absolute inset-x-3 top-12 z-20 flex flex-col gap-2 rounded-2xl border border-destructive/45 bg-destructive/15 p-2.5 shadow-sm backdrop-blur-md">
+          <div className="flex items-start gap-2">
             <HugeiconsIcon
               icon={Alert01Icon}
               strokeWidth={2}
               className="mt-0.5 size-3.5 shrink-0 text-destructive"
             />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-destructive">File missing</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-destructive">
+                File missing
+              </p>
               <p className="truncate text-[11px] text-destructive/90">
                 {item.location.split(/[\\/]/).pop()}
               </p>
@@ -153,38 +160,43 @@ export function ItemCard({
           <div className="flex flex-wrap gap-1.5">
             {item.repointCandidate && (
               <Button
-                size="sm"
+                size="xs"
                 variant="outline"
-                className="h-6 text-[11px]"
+                className="h-6 border-destructive/40 bg-background/20 text-[10px] text-destructive hover:bg-destructive/10"
                 onClick={() => onRepoint(item, item.repointCandidate!)}
               >
                 Repoint
               </Button>
             )}
             <Button
-              size="sm"
+              size="xs"
               variant="outline"
-              className="h-6 text-[11px]"
+              className="h-6 border-destructive/40 bg-background/20 text-[10px] text-destructive hover:bg-destructive/10"
               onClick={() => onLocate(item)}
             >
               <HugeiconsIcon icon={FolderOpenIcon} strokeWidth={2} />
-              Locate…
+              Locate
             </Button>
           </div>
         </div>
       )}
 
       {thumbnailMissing && !locationMissing && (
-        <div className="absolute inset-x-0 top-0 border-b border-destructive/30 bg-destructive/10 p-1.5 backdrop-blur-sm">
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-destructive">
+        <div className="absolute inset-x-3 top-12 z-20 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-1.5 text-[10px] font-medium text-amber-100 backdrop-blur-sm">
+          <span className="flex items-center gap-1.5">
             <HugeiconsIcon icon={Alert01Icon} strokeWidth={2} className="size-3.5 shrink-0" />
-            Thumbnail missing — will regenerate on edit
-          </p>
+            Thumbnail missing
+          </span>
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex min-h-[50%] flex-col justify-end gap-1.5 border-t border-foreground/10 bg-background/60 p-3.5 backdrop-blur-md">
-        <h3 className="line-clamp-2 font-heading text-[15px] leading-snug font-medium">{item.name}</h3>
+      <div className="absolute inset-x-0 bottom-0 z-20 border-t border-white/10 bg-linear-to-t from-background/95 via-background/80 to-background/35 p-4 backdrop-blur-md">
+        <div className="mb-2">
+          <h3 className="line-clamp-2 font-heading text-[15px] leading-snug font-medium text-foreground">
+            {item.name}
+          </h3>
+        </div>
+
         <p
           className={cn(
             'line-clamp-2 text-xs',
@@ -193,20 +205,28 @@ export function ItemCard({
         >
           {item.description || 'No description'}
         </p>
-        {item.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {item.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-[10px]">
-                {tag}
+
+        {visibleTags.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {visibleTags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="rounded-full px-2 py-0.5 text-[10px]">
+                {tag
+                  .split(' ')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')}
               </Badge>
             ))}
           </div>
         ) : (
-          <p className="text-[11px] text-muted-foreground/60 italic">No tags</p>
+          <p className="mt-3 text-[11px] text-muted-foreground/60 italic">No tags</p>
         )}
-        <p className="text-[11px] text-muted-foreground/70">
-          {item.lastOpened > 0 ? `Last opened ${formatDate(item.lastOpened)}` : 'Never opened'}
-        </p>
+
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-foreground/10 pt-2 text-[11px] text-muted-foreground/80">
+          <span>
+            {item.lastOpened > 0 ? `Opened ${formatDate(item.lastOpened)}` : 'Never opened'}
+          </span>
+          <span>{item.location.split(/[\\/]/).pop()}</span>
+        </div>
       </div>
     </Card>
   )
