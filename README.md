@@ -2,7 +2,13 @@
 
 A personal book library manager for PDFs scattered all over your system — in different directories, buried in nested folders, across drives.
 
+![Catalog Logo](./public/catalog.svg)
+
 One solution: point Catalog at a folder (or a whole drive), it walks every nested directory, catalogs each PDF, renders its cover, and gives you one-click access to open any book from a single searchable grid.
+
+<img alt="minimize desktop image" src="./public/minimize.png">
+
+
 
 No more remembering paths or hunting through dozens of folders: **import once, search, click, read.**
 
@@ -28,6 +34,8 @@ No more remembering paths or hunting through dozens of folders: **import once, s
 - **Missing file detection** — if a book is moved or renamed, the card flags it and offers **Repoint** (auto-find the new location) or **Locate…** (pick the file manually).
 - **Selection & bulk delete** — select multiple items (hover a card to reveal the checkbox) and delete them from the catalog in one go. The PDF files themselves are never deleted.
 - **Dark / Light / System themes** — switchable from the settings drawer, plus a one-click **Clear all** to wipe the catalog.
+
+<img alt="maximize desktop image" src="./public/maximize.png">
 
 ## Tech Stack
 
