@@ -66,28 +66,38 @@ export function pdfInfoToMetadata(info: PdfInfo): string {
   return JSON.stringify(out, null, 2)
 }
 
-export type MetadataSummary = {
-  title?: string
-  author?: string
-  pages?: number
-  year?: string
+export type MetadataEntry = {
+  key: string
+  value: string
 }
 
-export function parseMetadataSummary(raw: string, fileName: string): MetadataSummary {
+export function parseMetadataEntries(raw: string, fileName: string): MetadataEntry[] {
   let meta: Record<string, unknown>
   try {
     meta = JSON.parse(raw) as Record<string, unknown>
   } catch {
-    return {}
+    return []
   }
-  const summary: MetadataSummary = {}
+  const entries: MetadataEntry[] = []
   const title = typeof meta.title === 'string' ? meta.title.trim() : ''
   const name = fileName.replace(/\.[^.]+$/, '')
-  if (title && title.toLowerCase() !== name.toLowerCase()) summary.title = title
-  if (typeof meta.author === 'string' && meta.author.trim()) summary.author = meta.author.trim()
-  if (typeof meta.pages === 'number' && meta.pages > 0) summary.pages = meta.pages
-  if (typeof meta.created === 'string' && /^\d{4}/.test(meta.created)) {
-    summary.year = meta.created.slice(0, 4)
+  if (title && title.toLowerCase() !== name.toLowerCase()) {
+    entries.push({ key: 'Title', value: title })
   }
-  return summary
+  if (typeof meta.author === 'string' && meta.author.trim()) {
+    entries.push({ key: 'Author', value: meta.author.trim() })
+  }
+  if (typeof meta.pages === 'number' && meta.pages > 0) {
+    entries.push({ key: 'Pages', value: String(meta.pages) })
+  }
+  if (typeof meta.created === 'string' && /^\d{4}/.test(meta.created)) {
+    entries.push({ key: 'Published', value: meta.created.slice(0, 4) })
+  }
+  if (typeof meta.subject === 'string' && meta.subject.trim()) {
+    entries.push({ key: 'Subject', value: meta.subject.trim() })
+  }
+  if (Array.isArray(meta.keywords) && meta.keywords.length > 0) {
+    entries.push({ key: 'Keywords', value: meta.keywords.slice(0, 3).join(', ') })
+  }
+  return entries
 }

@@ -22,7 +22,7 @@ import {
   Tick02Icon
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
-import { parseMetadataSummary } from '@/lib/pdf-info'
+import { parseMetadataEntries } from '@/lib/pdf-info'
 import type { CatalogItem } from '../../../shared/types'
 
 type ItemCardProps = {
@@ -71,10 +71,7 @@ export function ItemCard({
   const locationMissing = !item.locationExists
   const thumbnailMissing = !item.thumbnailExists
   const visibleTags = item.tags.slice(0, 2)
-  const meta = parseMetadataSummary(item.metadata, item.location.split(/[\\/]/).pop() ?? '')
-  const metaLine = [meta.title, meta.author, meta.pages ? `${meta.pages} pp` : null, meta.year]
-    .filter(Boolean)
-    .join(' · ')
+  const metaEntries = parseMetadataEntries(item.metadata, item.location.split(/[\\/]/).pop() ?? '')
 
   return (
     <Card
@@ -216,8 +213,15 @@ export function ItemCard({
           </h3>
         </div>
 
-        {metaLine && (
-          <p className="mb-1.5 truncate text-[11px] text-muted-foreground/70">{metaLine}</p>
+        {metaEntries.length > 0 && (
+          <dl className="mb-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            {metaEntries.map(({ key, value }) => (
+              <div key={key} className="min-w-0 text-[11px] text-muted-foreground/70">
+                <dt className="inline font-medium text-muted-foreground/90">{key}: </dt>
+                <dd className="inline truncate">{value}</dd>
+              </div>
+            ))}
+          </dl>
         )}
 
         {item.description && (
