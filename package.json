@@ -15,6 +15,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "pack-apps": "electron-builder build --win --linux",
+    "generate:icons": "rsvg-convert -w 1024 -h 1024 src/renderer/src/assets/app-logos/catalog.svg -o src/renderer/src/assets/app-logos/catalog.png && electron-icon-builder --input=src/renderer/src/assets/app-logos/catalog.png --output=build && cp build/icons/win/icon.ico build/icon.ico && cp build/icons/mac/icon.icns build/icon.icns && cp build/icons/png/512x512.png build/icon.png && cp build/icon.png resources/icon.png && rm -rf build/icons",
     "start-electron": "electron .",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",

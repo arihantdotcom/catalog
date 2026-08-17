@@ -1,5 +1,9 @@
 node_modules
 dist
+# build resources — icons are generated (see CONTRIBUTING.md)
+build/icon.*
+resources/icon.png
+
 out
 .DS_Store
 .eslintcache
