@@ -2,7 +2,7 @@
 
 A personal book library manager for PDFs scattered all over your system — in different directories, buried in nested folders, across drives.
 
-<img alt="Catalog Logo" src="./public/catalog.png" width="100px">
+![Catalog Logo](./public/catalog.svg)
 
 One solution: point Catalog at a folder (or a whole drive), it walks every nested directory, catalogs each PDF, renders its cover, and gives you one-click access to open any book from a single searchable grid.
 
