@@ -1,15 +1,18 @@
 import { app, dialog, ipcMain, shell } from 'electron'
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
+  rmdirSync,
   statSync,
   unlinkSync,
   writeFileSync
 } from 'fs'
 import { readFile } from 'fs/promises'
-import { basename, dirname, extname, join } from 'path'
+import { basename, dirname, extname, join, resolve } from 'path'
 import { randomUUID } from 'crypto'
 import type {
   CatalogItem,
@@ -70,10 +73,42 @@ function findRepointCandidate(location: string, name: string): string | null {
   return matches.length === 1 ? join(dir, matches[0]) : null
 }
 
+let thumbnailDir: string | null = null
+
 function getThumbnailDir(): string {
-  const dir = join(app.getPath('userData'), 'thumbnails')
+  const dir = thumbnailDir ?? join(app.getPath('userData'), 'thumbnails')
   mkdirSync(dir, { recursive: true })
   return dir
+}
+
+function setThumbnailDir(newPath: string): void {
+  const dir = newPath.trim()
+  if (!dir) throw new Error('Directory path is required')
+  mkdirSync(dir, { recursive: true })
+  const old = getThumbnailDir()
+  if (resolve(old) === resolve(dir)) return
+
+  if (existsSync(old)) {
+    for (const entry of readdirSync(old)) {
+      const src = join(old, entry)
+      const dest = join(dir, entry)
+      try {
+        renameSync(src, dest)
+      } catch {
+        copyFileSync(src, dest)
+        unlinkSync(src)
+      }
+    }
+    try {
+      rmdirSync(old)
+    } catch {
+      // directory not empty or in use — leave it
+    }
+  }
+  thumbnailDir = dir
+  getDb()
+    .prepare("UPDATE items SET thumbnail = replace(thumbnail, ?, ?) WHERE thumbnail LIKE ? || '%'")
+    .run(old, dir, old)
 }
 
 function saveThumbnail(data: { mime: string; base64: string }): string {
@@ -298,5 +333,12 @@ export function registerCatalogIpc(): void {
     const buf = readFileSync(filePath)
     const mime = extname(filePath).toLowerCase() === '.png' ? 'image/png' : 'image/webp'
     return `data:${mime};base64,${buf.toString('base64')}`
+  })
+
+  ipcMain.handle('app:getThumbnailDir', () => getThumbnailDir())
+
+  ipcMain.handle('app:setThumbnailDir', (_e, dir: string) => {
+    setThumbnailDir(dir)
+    return getThumbnailDir()
   })
 }

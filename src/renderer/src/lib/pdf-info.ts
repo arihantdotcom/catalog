@@ -65,3 +65,29 @@ export function pdfInfoToMetadata(info: PdfInfo): string {
   if (info.modified) out.modified = info.modified
   return JSON.stringify(out, null, 2)
 }
+
+export type MetadataSummary = {
+  title?: string
+  author?: string
+  pages?: number
+  year?: string
+}
+
+export function parseMetadataSummary(raw: string, fileName: string): MetadataSummary {
+  let meta: Record<string, unknown>
+  try {
+    meta = JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+  const summary: MetadataSummary = {}
+  const title = typeof meta.title === 'string' ? meta.title.trim() : ''
+  const name = fileName.replace(/\.[^.]+$/, '')
+  if (title && title.toLowerCase() !== name.toLowerCase()) summary.title = title
+  if (typeof meta.author === 'string' && meta.author.trim()) summary.author = meta.author.trim()
+  if (typeof meta.pages === 'number' && meta.pages > 0) summary.pages = meta.pages
+  if (typeof meta.created === 'string' && /^\d{4}/.test(meta.created)) {
+    summary.year = meta.created.slice(0, 4)
+  }
+  return summary
+}

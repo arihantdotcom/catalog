@@ -22,6 +22,7 @@ import {
   Tick02Icon
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
+import { parseMetadataSummary } from '@/lib/pdf-info'
 import type { CatalogItem } from '../../../shared/types'
 
 type ItemCardProps = {
@@ -43,6 +44,20 @@ function formatDate(ts: number): string {
   })
 }
 
+function formatLastOpened(ts: number): string {
+  const diff = Date.now() - ts
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff < minute) return 'Opened just now'
+  if (diff < hour) return `Opened ${Math.floor(diff / minute)} min ago`
+  if (diff < day) return `Opened ${Math.floor(diff / hour)} hr ago`
+  if (diff < 2 * day) return 'Opened yesterday'
+  if (diff < 7 * day)
+    return `Opened ${new Date(ts).toLocaleDateString(undefined, { weekday: 'short' })}`
+  return `Opened ${formatDate(ts)}`
+}
+
 export function ItemCard({
   item,
   selected = false,
@@ -56,6 +71,10 @@ export function ItemCard({
   const locationMissing = !item.locationExists
   const thumbnailMissing = !item.thumbnailExists
   const visibleTags = item.tags.slice(0, 2)
+  const meta = parseMetadataSummary(item.metadata, item.location.split(/[\\/]/).pop() ?? '')
+  const metaLine = [meta.title, meta.author, meta.pages ? `${meta.pages} pp` : null, meta.year]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <Card
@@ -197,16 +216,15 @@ export function ItemCard({
           </h3>
         </div>
 
-        <p
-          className={cn(
-            'line-clamp-2 text-xs',
-            item.description ? 'text-muted-foreground' : 'text-muted-foreground/60 italic'
-          )}
-        >
-          {item.description || 'No description'}
-        </p>
+        {metaLine && (
+          <p className="mb-1.5 truncate text-[11px] text-muted-foreground/70">{metaLine}</p>
+        )}
 
-        {visibleTags.length > 0 ? (
+        {item.description && (
+          <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+        )}
+
+        {visibleTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {visibleTags.map((tag) => (
               <Badge key={tag} variant="secondary" className="rounded-full px-2 py-0.5 text-[10px]">
@@ -217,14 +235,10 @@ export function ItemCard({
               </Badge>
             ))}
           </div>
-        ) : (
-          <p className="mt-3 text-[11px] text-muted-foreground/60 italic">No tags</p>
         )}
 
         <div className="mt-3 flex items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground/80">
-          <span>
-            {item.lastOpened > 0 ? `Opened ${formatDate(item.lastOpened)}` : 'Never opened'}
-          </span>
+          <span>{item.lastOpened > 0 ? formatLastOpened(item.lastOpened) : 'Never opened'}</span>
           <span>{item.location.split(/[\\/]/).pop()}</span>
         </div>
       </div>

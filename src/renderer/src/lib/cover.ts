@@ -6,7 +6,7 @@ import { extractPdfInfoFromDocument, type PdfInfo } from './pdf-info'
 
 GlobalWorkerOptions.workerSrc = workerUrl
 
-const THUMBNAIL_WIDTH = 400
+const THUMBNAIL_WIDTH = 600
 const COVER_TIMEOUT_MS = 60_000
 
 export type CoverResult = {
@@ -35,7 +35,7 @@ async function renderFirstPage(pdf: PDFDocumentProxy): Promise<ThumbnailData | n
   if (!ctx) return null
   await page.render({ canvas, viewport }).promise
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/webp', 0.85)
+    canvas.toBlob(resolve, 'image/webp', 0.92)
   )
   if (!blob) return null
   return { mime: 'image/webp', base64: await blobToBase64(blob) }

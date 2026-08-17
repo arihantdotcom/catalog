@@ -24,7 +24,9 @@ const api = {
   pickPdf: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickPdf'),
   pickDirectory: (): Promise<string | null> => ipcRenderer.invoke('dialog:pickDirectory'),
   readPdf: (filePath: string): Promise<ArrayBuffer> => ipcRenderer.invoke('pdf:read', filePath),
-  readThumbnail: (filePath: string): Promise<string> => ipcRenderer.invoke('thumb:read', filePath)
+  readThumbnail: (filePath: string): Promise<string> => ipcRenderer.invoke('thumb:read', filePath),
+  getThumbnailDir: (): Promise<string> => ipcRenderer.invoke('app:getThumbnailDir'),
+  setThumbnailDir: (dir: string): Promise<string> => ipcRenderer.invoke('app:setThumbnailDir', dir)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
