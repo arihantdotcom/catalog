@@ -33,10 +33,22 @@ linux:
     - AppImage
     - snap
     - deb
+    - pacman
+    - tar.gz
   maintainer: electronjs.org
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
+pacman:
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libxss
+    - libxtst
+    - xdg-utils
+    - at-spi2-core
+    - libsecret
 npmRebuild: false
 publish:
   provider: generic
