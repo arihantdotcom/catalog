@@ -6,6 +6,18 @@ One solution: point Catalog at a folder (or a whole drive), it walks every neste
 
 No more remembering paths or hunting through dozens of folders: **import once, search, click, read.**
 
+## Supported Platforms & Downloads
+
+| Platform | Package | Install |
+|----------|---------|---------|
+| Windows | `catalog-<version>-setup.exe` | Double-click the installer |
+| Arch Linux | `catalog-<version>.pacman` | `sudo pacman -U catalog-<version>.pacman` |
+| Debian / Ubuntu | `catalog_<version>_amd64.deb` | `sudo dpkg -i catalog_<version>_amd64.deb` |
+| Linux (portable) | `catalog-<version>.tar.gz` | Extract, then run `catalog` from the folder |
+| Linux (universal) | `catalog-<version>.AppImage` | `chmod +x catalog-<version>.AppImage && ./catalog-<version>.AppImage` |
+
+> **For the latest release and downloads, check the [latest release notes](https://github.com/arihantdotcom/catalog/releases/latest).**
+
 ## Features
 
 - **Bulk import** — scan an entire folder tree (recursively) and catalog every PDF it finds. Existing files are skipped automatically.
